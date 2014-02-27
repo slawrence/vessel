@@ -1,0 +1,537 @@
+<!DOCTYPE HTML>
+<html><head><meta charset="UTF-8"><title>vessel</title><script type="text/javascript" src="/elm-runtime.js"></script><script type="text/javascript">Elm.Main = Elm.Main || {};
+Elm.Main.make = function (_elm) {
+   _elm.Main = _elm.Main || {};
+   if (_elm.Main.values)
+   return _elm.Main.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _E = _N.Error.make(_elm),
+   _J = _N.JavaScript.make(_elm),
+   $moduleName = "Main";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var Keyboard = Elm.Keyboard.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Prelude = Elm.Prelude.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var Window = Elm.Window.make(_elm);
+   var _op = {};
+   var txt = function (f) {
+      return function ($) {
+         return Text.text(f(Text.monospace(Text.color(Color.white)(Text.toText($)))));
+      };
+   };
+   var drawShip = function (ship) {
+      return _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
+                                              ,_0: ship.x
+                                              ,_1: ship.y})(Graphics.Collage.rotate(Basics.degrees(90))(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.ngon,
+      3,
+      10))))]);
+   };
+   var drawDebri = function (d) {
+      return _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
+                                              ,_0: d.x
+                                              ,_1: d.y})(Graphics.Collage.filled(Color.white)(Graphics.Collage.square(d.size)))]);
+   };
+   var drawPiece = function (piece) {
+      return _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
+                                              ,_0: piece.x
+                                              ,_1: piece.y})(Graphics.Collage.filled(Color.lightRed)(A2(Graphics.Collage.rect,
+      piece.width,
+      piece.height)))]);
+   };
+   var hideShip = function (s) {
+      return _U.replace([["x",-30]
+                        ,["y",400]],
+      s);
+   };
+   var withinN = F3(function (offset,
+   px,
+   sx) {
+      return _U.cmp(sx,
+      px - offset) > 0 && _U.cmp(sx,
+      px + offset) < 0;
+   });
+   var inside = F2(function (ship,
+   piece) {
+      return function () {
+         var halfW = piece.width / 2;
+         return A3(withinN,
+         halfW,
+         piece.x,
+         ship.x);
+      }();
+   });
+   var addD = F3(function (sx,
+   sy,
+   n) {
+      return function () {
+         var vy = Basics.cos(Basics.degrees(Basics.toFloat(n))) * 150;
+         var vx = Basics.sin(Basics.degrees(Basics.toFloat(n))) * 150;
+         return {_: {}
+                ,size: 10
+                ,vx: vx
+                ,vy: vy
+                ,x: sx
+                ,y: sy};
+      }();
+   });
+   var addDebri = F3(function (ship,
+   cnt,
+   debri) {
+      return function () {
+         var l = List.length(debri);
+         return _U.eq(l,
+         0) ? _L.append(A2(List.map,
+         A2(addD,ship.x,ship.y),
+         A3(List.foldl,
+         F2(function (n,a) {
+            return _U.eq(A2(Basics.mod,
+            n,
+            8),
+            0) ? _L.append(_J.toList([n]),
+            a) : a;
+         }),
+         _J.toList([]),
+         _L.range(0,360))),
+         debri) : debri;
+      }();
+   });
+   var filterPiece = function (piece) {
+      return _U.cmp(piece.y,
+      -400) > 0;
+   };
+   var stepObj = F2(function (t,
+   _v0) {
+      return function () {
+         return _U.replace([["x"
+                            ,_v0.x + _v0.vx * t]
+                           ,["y",_v0.y + _v0.vy * t]],
+         _v0);
+      }();
+   });
+   var stepShip = F3(function (t,
+   dir,
+   ship) {
+      return function () {
+         var ship1 = A2(stepObj,
+         t,
+         _U.replace([["vx"
+                     ,Basics.toFloat(dir) * 300]],
+         ship));
+         return ship1;
+      }();
+   });
+   var stepDebri = F4(function (t,
+   cnt,
+   ship,
+   debri) {
+      return A2(List.map,
+      stepObj(t),
+      A3(addDebri,ship,cnt,debri));
+   });
+   var updateAmpl = F2(function (cur,
+   max) {
+      return _U.cmp(cur,
+      max) < 0 ? cur + 1 : cur;
+   });
+   var curve = F2(function (x,
+   ampl) {
+      return function () {
+         var angle = Basics.degrees(Basics.toFloat(x)) * 2;
+         return (Basics.cos(3 * angle) + Basics.sin(2 * angle)) * ampl;
+      }();
+   });
+   var Dead = {ctor: "Dead"};
+   var Playing = {ctor: "Playing"};
+   var updateState = function (game) {
+      return function () {
+         var pieces = List.filter(function (p) {
+            return A3(withinN,
+            60,
+            p.y,
+            game.ship.y);
+         })(game.pieces);
+         return A2(List.any,
+         inside(game.ship),
+         pieces) ? Playing : Dead;
+      }();
+   };
+   var displayText = function (game) {
+      return function () {
+         var text = function () {
+            var _v2 = game.state;
+            switch (_v2.ctor)
+            {case "Dead": return "Failure.";
+               case "Playing": return "";}
+            return "Space to start then arrows";
+         }();
+         return text;
+      }();
+   };
+   var display = F2(function (_v3,
+   game) {
+      return function () {
+         switch (_v3.ctor)
+         {case "_Tuple2":
+            return A2(Graphics.Collage.collage,
+              _v3._0,
+              _v3._1)(_L.append(_J.toList([Graphics.Collage.filled(Color.darkRed)(A2(Graphics.Collage.rect,
+              500,
+              500))]),
+              _L.append(A2(List.concatMap,
+              drawPiece,
+              game.pieces),
+              _L.append(drawShip(game.ship),
+              _L.append(A2(List.concatMap,
+              drawDebri,
+              game.debri),
+              _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
+                                               ,_0: 0
+                                               ,_1: 350})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                        500,
+                        200)))
+                        ,Graphics.Collage.move({ctor: "_Tuple2"
+                                               ,_0: 0
+                                               ,_1: -350})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                        500,
+                        200)))
+                        ,Graphics.Collage.move({ctor: "_Tuple2"
+                                               ,_0: -350
+                                               ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                        200,
+                        500)))
+                        ,Graphics.Collage.move({ctor: "_Tuple2"
+                                               ,_0: 350
+                                               ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                        200,
+                        500)))
+                        ,Graphics.Collage.toForm(A2(txt,
+                        Text.height(15),
+                        displayText(game)))
+                        ,Graphics.Collage.move({ctor: "_Tuple2"
+                                               ,_0: 220
+                                               ,_1: 260})(Graphics.Collage.toForm(Text.asText(game.score)))]))))));}
+         _E.Case($moduleName,
+         "between lines 175 and 185");
+      }();
+   });
+   var Waiting = {ctor: "Waiting"};
+   var Game = F7(function (a,
+   b,
+   c,
+   d,
+   e,
+   f,
+   g) {
+      return {_: {}
+             ,cnt: a
+             ,debri: d
+             ,pieces: e
+             ,score: f
+             ,ship: b
+             ,state: g
+             ,t: c};
+   });
+   var Debri = F5(function (a,
+   b,
+   c,
+   d,
+   e) {
+      return {_: {}
+             ,size: e
+             ,vx: c
+             ,vy: d
+             ,x: a
+             ,y: b};
+   });
+   var Piece = F6(function (a,
+   b,
+   c,
+   d,
+   e,
+   f) {
+      return {_: {}
+             ,height: f
+             ,vx: c
+             ,vy: d
+             ,width: e
+             ,x: a
+             ,y: b};
+   });
+   var Tunnel = F6(function (a,
+   b,
+   c,
+   d,
+   e,
+   f) {
+      return {_: {}
+             ,ampl: f
+             ,h: e
+             ,speed: b
+             ,width: a
+             ,x: c
+             ,y: d};
+   });
+   var Ship = F4(function (a,
+   b,
+   c,
+   d) {
+      return {_: {}
+             ,vx: c
+             ,vy: d
+             ,x: a
+             ,y: b};
+   });
+   var delta = A2(Signal._op["<~"],
+   Time.inSeconds,
+   Time.fps(35));
+   var Input = F3(function (a,
+   b,
+   c) {
+      return {_: {}
+             ,delta: b
+             ,dir: a
+             ,space: c};
+   });
+   var input = A2(Signal.sampleOn,
+   delta,
+   A2(Signal._op["~"],
+   A2(Signal._op["~"],
+   A2(Signal._op["<~"],
+   Input,
+   A2(Signal.lift,
+   function (_) {
+      return _.x;
+   },
+   Keyboard.arrows)),
+   delta),
+   Keyboard.space));
+   var speedDelta = 0.5;
+   var startSpeed = 500;
+   var minWidth = 50;
+   var updateTunnel = function (game) {
+      return function () {
+         var state = game.state;
+         var t = game.t;
+         var speed = _U.eq(game.state,
+         Playing) ? t.speed + speedDelta : t.speed;
+         var ampl = _U.eq(game.state,
+         Playing) ? A2(updateAmpl,
+         t.ampl,
+         80) : t.ampl;
+         var nx = A2(curve,
+         game.cnt,
+         ampl);
+         var nwidth = _U.cmp(t.width,
+         minWidth) < 0 || _U.eq(state,
+         Waiting) ? t.width : t.width - 0.1;
+         return _U.replace([["x",nx]
+                           ,["width",nwidth]
+                           ,["speed",speed]
+                           ,["ampl",ampl]
+                           ,["h",t.h + speedDelta]],
+         t);
+      }();
+   };
+   var startWidth = 200;
+   var startPieceH = 100;
+   var addPiece = function (game) {
+      return function () {
+         var nwidth = game.t.width;
+         var speed = game.t.speed;
+         var ny = game.t.y;
+         var nx = game.t.x;
+         return _U.eq(A2(Basics.mod,
+         game.cnt,
+         1),
+         0) ? {ctor: "::"
+              ,_0: {_: {}
+                   ,height: startPieceH
+                   ,vx: 0
+                   ,vy: 0 - speed
+                   ,width: nwidth
+                   ,x: nx
+                   ,y: ny}
+              ,_1: game.pieces} : game.pieces;
+      }();
+   };
+   var stepPiece = F2(function (t,
+   game) {
+      return List.filter(filterPiece)(List.map(stepObj(t))(addPiece(game)));
+   });
+   var stepWaiting = F2(function (_v7,
+   game) {
+      return function () {
+         return _v7.space ? _U.replace([["state"
+                                        ,Playing]],
+         game) : _U.replace([["pieces"
+                             ,A2(stepPiece,_v7.delta,game)]
+                            ,["cnt"
+                             ,function (n) {
+                                return n + 1;
+                             }(game.cnt)]
+                            ,["t",updateTunnel(game)]],
+         game);
+      }();
+   });
+   var stepGame = F2(function (_v9,
+   game) {
+      return function () {
+         return _U.replace([["pieces"
+                            ,A2(stepPiece,_v9.delta,game)]
+                           ,["cnt"
+                            ,function (n) {
+                               return n + 1;
+                            }(game.cnt)]
+                           ,["t",updateTunnel(game)]
+                           ,["ship"
+                            ,A3(stepShip,
+                            _v9.delta,
+                            _v9.dir,
+                            game.ship)]
+                           ,["score"
+                            ,function (n) {
+                               return n + 1;
+                            }(game.score)]
+                           ,["state",updateState(game)]],
+         game);
+      }();
+   });
+   var shipStartY = -200;
+   var defaultGame = {_: {}
+                     ,cnt: 0
+                     ,debri: _J.toList([])
+                     ,pieces: A2(List.map,
+                     function (n) {
+                        return {_: {}
+                               ,height: startPieceH
+                               ,vx: 0
+                               ,vy: 0 - startSpeed
+                               ,width: startWidth
+                               ,x: A2(curve,
+                               n,
+                               Basics.toFloat(20))
+                               ,y: Basics.toFloat(n + 30) * 10};
+                     },
+                     _L.range(-60,0))
+                     ,score: 0
+                     ,ship: {_: {}
+                            ,vx: 0
+                            ,vy: 0
+                            ,x: 0
+                            ,y: shipStartY}
+                     ,state: Waiting
+                     ,t: {_: {}
+                         ,ampl: 20
+                         ,h: startPieceH
+                         ,speed: startSpeed
+                         ,width: startWidth
+                         ,x: A2(curve,
+                         0,
+                         Basics.toFloat(20))
+                         ,y: 300}};
+   var stepDead = F2(function (_v11,
+   game) {
+      return function () {
+         return _v11.space ? _U.replace([["state"
+                                         ,Playing]],
+         defaultGame) : _U.replace([["debri"
+                                    ,A4(stepDebri,
+                                    _v11.delta,
+                                    game.cnt,
+                                    game.ship,
+                                    game.debri)]
+                                   ,["ship",hideShip(game.ship)]
+                                   ,["cnt"
+                                    ,function (n) {
+                                       return n + 1;
+                                    }(game.cnt)]],
+         game);
+      }();
+   });
+   var stepStart = F2(function (input,
+   game) {
+      return function () {
+         var _v13 = game.state;
+         switch (_v13.ctor)
+         {case "Dead":
+            return A2(stepDead,input,game);
+            case "Playing":
+            return A2(stepGame,input,game);
+            case "Waiting":
+            return A2(stepWaiting,
+              input,
+              game);}
+         _E.Case($moduleName,
+         "between lines 149 and 152");
+      }();
+   });
+   var gameState = A3(Signal.foldp,
+   stepStart,
+   defaultGame,
+   input);
+   var main = A3(Signal.lift2,
+   display,
+   Window.dimensions,
+   gameState);
+   _elm.Main.values = {_op: _op
+                      ,shipStartY: shipStartY
+                      ,startPieceH: startPieceH
+                      ,startWidth: startWidth
+                      ,minWidth: minWidth
+                      ,startSpeed: startSpeed
+                      ,speedDelta: speedDelta
+                      ,delta: delta
+                      ,input: input
+                      ,defaultGame: defaultGame
+                      ,curve: curve
+                      ,updateAmpl: updateAmpl
+                      ,updateTunnel: updateTunnel
+                      ,stepObj: stepObj
+                      ,stepShip: stepShip
+                      ,filterPiece: filterPiece
+                      ,stepPiece: stepPiece
+                      ,stepDebri: stepDebri
+                      ,addD: addD
+                      ,addDebri: addDebri
+                      ,addPiece: addPiece
+                      ,withinN: withinN
+                      ,inside: inside
+                      ,updateState: updateState
+                      ,hideShip: hideShip
+                      ,stepDead: stepDead
+                      ,stepWaiting: stepWaiting
+                      ,stepGame: stepGame
+                      ,stepStart: stepStart
+                      ,gameState: gameState
+                      ,drawPiece: drawPiece
+                      ,drawDebri: drawDebri
+                      ,drawShip: drawShip
+                      ,txt: txt
+                      ,displayText: displayText
+                      ,display: display
+                      ,main: main
+                      ,Waiting: Waiting
+                      ,Playing: Playing
+                      ,Dead: Dead
+                      ,Input: Input
+                      ,Ship: Ship
+                      ,Tunnel: Tunnel
+                      ,Piece: Piece
+                      ,Debri: Debri
+                      ,Game: Game};
+   return _elm.Main.values;
+};</script></head><body><script type="text/javascript">Elm.fullscreen(Elm.Main)</script><noscript></noscript></body></html>
