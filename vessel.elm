@@ -1,8 +1,7 @@
-import Mouse
 import Keyboard
 import Window
-import Random
 
+-- Important game properties
 shipStartY = -200
 startPieceH = 100
 startWidth = 200
@@ -10,15 +9,12 @@ minWidth = 50
 startSpeed = 500
 speedDelta = 0.5
 
-data State = Waiting | Playing | Dead
 
 -- Inputs
-type Input = { dir:Int, delta:Float, rand:Int, space:Bool}
+type Input = { dir:Int, delta:Float, space:Bool}
 delta = inSeconds <~ fps 35
-
 input = sampleOn delta (Input <~ lift .x Keyboard.arrows
                                ~ delta
-                               ~ (Random.range 0 10 (every second))
                                ~ Keyboard.space)
 -- Models
 type Ship = { x:Float, y:Float, vx:Float, vy:Float }
@@ -26,40 +22,43 @@ type Tunnel = { width:Float, speed:Float, x:Float, y:Float, h:Float, ampl:Float 
 type Piece = { x: Float, y: Float, vx:Float, vy:Float, width:Float, height:Float }
 type Game = { cnt:Int,
               ship:Ship,
-              tunnel:Tunnel,
+              t:Tunnel,
               pieces:[Piece],
               score:Int,
               state:State}
+data State = Waiting | Playing | Dead
+
+-- initial state
+defaultGame =
+  { cnt    = 0,
+    ship   = { x=0, y=shipStartY, vx=0, vy=0 },
+    t = { width=startWidth, speed=startSpeed, x=(curve 0 (toFloat 20)), y=300, h=startPieceH, ampl=20 },
+    pieces = map (\n -> { x=(curve n (toFloat 20)), y=(toFloat (n + 30))*10, vx=0, vy=-startSpeed, width=startWidth, height=startPieceH }) [-60..0],
+    score  = 0,
+    state  = Waiting }
+
+-- Updates
 curve : Int -> Float -> Float
 curve x ampl =
   let angle = (degrees (toFloat x)) * 2
   in (cos (3*angle) + sin (2*angle)) * ampl
 
-defaultGame : Game
-defaultGame =
-  { cnt    = 0,
-    ship   = { x=0, y=shipStartY, vx=0, vy=0 },
-    tunnel = { width=startWidth, speed=startSpeed, x=(curve 0 (toFloat 20)), y=300, h=startPieceH, ampl=20 },
-    pieces = map (\n -> { x=(curve n (toFloat 20)), y=(toFloat (n + 30))*10, vx=0, vy=-startSpeed, width=startWidth, height=startPieceH }) [-60..0],
-    score  = 0,
-    state  = Waiting }
-
 updateAmpl cur max = if (cur < max) then cur + 1 else cur
 
-updateTunnel : Int -> Game -> Tunnel
-updateTunnel rand game =
-  let tunnel = game.tunnel
+updateTunnel : Game -> Tunnel
+updateTunnel game =
+  let t = game.t
       state = game.state
-      speed = if game.state == Playing then tunnel.speed + speedDelta else tunnel.speed
-      ampl = if game.state == Playing then updateAmpl tunnel.ampl 80 else tunnel.ampl
+      speed = if game.state == Playing then t.speed + speedDelta else t.speed
+      ampl = if game.state == Playing then updateAmpl t.ampl 80 else t.ampl
       nx = curve game.cnt ampl
-      nwidth = if (tunnel.width < minWidth || state == Waiting) then tunnel.width else tunnel.width - 0.1
+      nwidth = if (t.width < minWidth || state == Waiting) then t.width else t.width - 0.1
   in
-    { tunnel | x <- nx
+    { t | x <- nx
              , width <- nwidth
              , speed <- speed
              , ampl <- ampl
-             , h <- tunnel.h + speedDelta }
+             , h <- t.h + speedDelta }
 
 stepObj t ({x,y,vx,vy} as obj) =
     { obj | x <- x + vx*t, y <- y + vy*t }
@@ -71,25 +70,24 @@ stepShip t dir ship =
 
 filterPiece piece = piece.y > -400
 
-stepPiece : Time -> Int -> Game -> [Piece]
-stepPiece t rand game =
-  addPiece rand game
+stepPiece : Time -> Game -> [Piece]
+stepPiece t game =
+  addPiece game
    |> map (stepObj t)
    |> filter (filterPiece)
 
 
-addPiece : Int -> Game -> [Piece]
-addPiece rand game =
-  let nx = game.tunnel.x
-      ny = game.tunnel.y
-      speed = game.tunnel.speed
-      nwidth = game.tunnel.width
+addPiece : Game -> [Piece]
+addPiece game =
+  let nx = game.t.x
+      ny = game.t.y
+      speed = game.t.speed
+      nwidth = game.t.width
   in
       if game.cnt `mod` 1 == 0
       then { x=nx, y=ny, vx=0, vy=-speed, width=nwidth, height=startPieceH } :: game.pieces
       else game.pieces
 
---withinN : Int -> Float -> Float -> Bool
 withinN offset px sx = (sx > px - offset) && (sx < px + offset)
 
 inside : Ship -> Piece -> Bool
@@ -106,22 +104,22 @@ updateState game =
      else Dead
 
 stepDead : Input -> Game -> Game
-stepDead {dir,delta,rand,space} game = if space
+stepDead {dir,delta,space} game = if space
                           then { defaultGame | state <- Playing }
                           else game
 
 stepWaiting : Input -> Game -> Game
-stepWaiting {dir,delta,rand,space} game = if space
+stepWaiting {dir,delta,space} game = if space
                           then { game | state <- Playing }
-                          else { game | pieces <- stepPiece delta rand game
+                          else { game | pieces <- stepPiece delta game
                                       , cnt <- (\n -> n + 1) game.cnt
-                                      , tunnel <- updateTunnel rand game}
+                                      , t <- updateTunnel game}
 
 stepGame : Input -> Game -> Game
-stepGame {dir,delta,rand,space} game =
-  { game | pieces <- stepPiece delta rand game
+stepGame {dir,delta,space} game =
+  { game | pieces <- stepPiece delta game
          , cnt <- (\n -> n + 1) game.cnt
-         , tunnel <- updateTunnel rand game
+         , t <- updateTunnel game
          , ship <- stepShip delta dir game.ship
          , score <- (\n -> n + 1) game.score
          , state <- updateState game }
@@ -134,23 +132,17 @@ stepStart input game = case game.state of
 gameState = foldp stepStart defaultGame input
 
 -- DISPLAY
-drawPiece : Piece -> [Form]
-drawPiece piece = [rect piece.width piece.height
-    |> filled lightRed
-    |> move (piece.x, piece.y)]
+drawPiece piece = [rect piece.width piece.height |> filled lightRed
+                                                 |> move (piece.x, piece.y)]
 
-drawShip ship =
-  let sx = ship.x
-      sy = ship.y
-  in [ ngon 3 10 |> filled white -- draw ship
-            |> rotate (degrees 90)
-            |> move (sx, sy) ]
+drawShip ship = [ ngon 3 10 |> filled white
+                            |> rotate (degrees 90)
+                            |> move (ship.x, ship.y) ]
 
 displayTextLeft game =
     let text = case game.state of
         Playing -> (plainText "Vessel")
-        Waiting -> (plainText "Press Space")
-        Dead -> (plainText "Press Space")
+        _       -> (plainText "Press Space")
     in toForm text |> move (-200, 260)
 
 display (w,h) game =
@@ -164,5 +156,4 @@ display (w,h) game =
     , toForm (asText game.score) |> move (220, 260) ]
 
 main = lift2 display Window.dimensions gameState
-
 
