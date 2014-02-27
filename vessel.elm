@@ -163,11 +163,13 @@ drawShip ship = [ ngon 3 10 |> filled white
                             |> rotate (degrees 90)
                             |> move (ship.x, ship.y) ]
 
-displayTextLeft game =
+txt f = text . f . monospace . Text.color white . toText
+displayText game =
     let text = case game.state of
-        Playing -> (plainText "Vessel")
-        _       -> (plainText "Press Space")
-    in toForm text |> move (-200, 260)
+        Playing -> ""
+        Dead    -> "You are a failure."
+        _       -> "Space to start then arrows"
+    in text
 
 display (w,h) game =
   collage w h <|
@@ -179,7 +181,7 @@ display (w,h) game =
     , rect 500 200 |> filled white |> move (0, -350)
     , rect 200 500 |> filled white |> move (-350, 0)
     , rect 200 500 |> filled white |> move (350, 0)
-    , displayTextLeft game
+    , toForm (txt (Text.height 15) (displayText game))
     , toForm (asText game.score) |> move (220, 260) ]
 
 main = lift2 display Window.dimensions gameState
