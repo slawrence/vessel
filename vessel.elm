@@ -20,9 +20,11 @@ input = sampleOn delta (Input <~ lift .x Keyboard.arrows
 type Ship = { x:Float, y:Float, vx:Float, vy:Float }
 type Tunnel = { width:Float, speed:Float, x:Float, y:Float, h:Float, ampl:Float }
 type Piece = { x: Float, y: Float, vx:Float, vy:Float, width:Float, height:Float }
+type Debri = { x: Float, y: Float, vx:Float, vy:Float, size:Float }
 type Game = { cnt:Int,
               ship:Ship,
               t:Tunnel,
+              debri:[Debri],
               pieces:[Piece],
               score:Int,
               state:State}
@@ -33,6 +35,7 @@ defaultGame =
   { cnt    = 0,
     ship   = { x=0, y=shipStartY, vx=0, vy=0 },
     t = { width=startWidth, speed=startSpeed, x=(curve 0 (toFloat 20)), y=300, h=startPieceH, ampl=20 },
+    debri = [],
     pieces = map (\n -> { x=(curve n (toFloat 20)), y=(toFloat (n + 30))*10, vx=0, vy=-startSpeed, width=startWidth, height=startPieceH }) [-60..0],
     score  = 0,
     state  = Waiting }
@@ -76,6 +79,20 @@ stepPiece t game =
    |> map (stepObj t)
    |> filter (filterPiece)
 
+--shrink t obj = { obj | size <- obj.size - 1 }
+
+stepDebri t cnt ship debri = map (stepObj t) (addDebri ship cnt debri)
+
+addD sx sy n =
+    let vx = sin (degrees (toFloat n)) * 150
+        vy = cos (degrees (toFloat n)) * 150
+    in {x=sx, y=sy, vx=vx, vy=vy, size=10}
+
+addDebri ship cnt debri =
+  let l = length debri
+  in if (l == 0)
+     then (map (addD ship.x ship.y) (foldl (\n a -> if n `mod` 8 == 0 then [n] ++ a else a ) [] [0..360])) ++ debri
+     else debri
 
 addPiece : Game -> [Piece]
 addPiece game =
@@ -103,10 +120,15 @@ updateState game =
      then Playing
      else Dead
 
+hideShip s = { s | x <- -30
+                 , y <- 400 }
+
 stepDead : Input -> Game -> Game
 stepDead {dir,delta,space} game = if space
                           then { defaultGame | state <- Playing }
-                          else game
+                          else { game | debri <- stepDebri delta game.cnt game.ship game.debri
+                                      , ship <- hideShip game.ship
+                                      , cnt <- (\n -> n + 1) game.cnt }
 
 stepWaiting : Input -> Game -> Game
 stepWaiting {dir,delta,space} game = if space
@@ -135,6 +157,8 @@ gameState = foldp stepStart defaultGame input
 drawPiece piece = [rect piece.width piece.height |> filled lightRed
                                                  |> move (piece.x, piece.y)]
 
+drawDebri d = [square d.size |> filled white |> move (d.x, d.y)]
+
 drawShip ship = [ ngon 3 10 |> filled white
                             |> rotate (degrees 90)
                             |> move (ship.x, ship.y) ]
@@ -150,8 +174,11 @@ display (w,h) game =
     [ rect 500 500 |> filled darkRed ] ++
     concatMap drawPiece game.pieces ++
     drawShip game.ship ++
+    concatMap drawDebri game.debri ++
     [ rect 500 200 |> filled white |> move (0, 350)
     , rect 500 200 |> filled white |> move (0, -350)
+    , rect 200 500 |> filled white |> move (-350, 0)
+    , rect 200 500 |> filled white |> move (350, 0)
     , displayTextLeft game
     , toForm (asText game.score) |> move (220, 260) ]
 
