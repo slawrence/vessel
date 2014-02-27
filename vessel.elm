@@ -167,7 +167,7 @@ txt f = text . f . monospace . Text.color white . toText
 displayText game =
     let text = case game.state of
         Playing -> ""
-        Dead    -> "You are a failure."
+        Dead    -> "Failure."
         _       -> "Space to start then arrows"
     in text
 
