@@ -74,6 +74,27 @@ Elm.Main.make = function (_elm) {
          ship.x);
       }();
    });
+   var addPiece = function (game) {
+      return function () {
+         var h = 800 / Basics.toFloat(List.length(game.pieces)) + 50;
+         var nwidth = game.t.width;
+         var speed = game.t.speed;
+         var ny = game.t.y;
+         var nx = game.t.x;
+         return _U.eq(A2(Basics.mod,
+         game.cnt,
+         1),
+         0) ? {ctor: "::"
+              ,_0: {_: {}
+                   ,height: h
+                   ,vx: 0
+                   ,vy: 0 - speed
+                   ,width: nwidth
+                   ,x: nx
+                   ,y: ny}
+              ,_1: game.pieces} : game.pieces;
+      }();
+   };
    var addD = F3(function (sx,
    sy,
    n) {
@@ -129,10 +150,14 @@ Elm.Main.make = function (_elm) {
          var ship1 = A2(stepObj,
          t,
          _U.replace([["vx"
-                     ,Basics.toFloat(dir) * 300]],
+                     ,Basics.toFloat(dir) * 360]],
          ship));
          return ship1;
       }();
+   });
+   var stepPiece = F2(function (t,
+   game) {
+      return List.filter(filterPiece)(List.map(stepObj(t))(addPiece(game)));
    });
    var stepDebri = F4(function (t,
    cnt,
@@ -147,11 +172,45 @@ Elm.Main.make = function (_elm) {
       return _U.cmp(cur,
       max) < 0 ? cur + 1 : cur;
    });
-   var curve = F2(function (x,
+   var towards = F2(function (target,
+   x) {
+      return function () {
+         var xdelta = target - x;
+         var neg = _U.cmp(xdelta,0) < 0;
+         return x + xdelta / 30;
+      }();
+   });
+   var autoShip = F2(function (t,
+   s) {
+      return _U.replace([["x"
+                         ,A2(towards,t.x,s.x)]],
+      s);
+   });
+   var curve = F2(function (cnt,
    ampl) {
       return function () {
-         var angle = Basics.degrees(Basics.toFloat(x)) * 2;
-         return (Basics.cos(3 * angle) + Basics.sin(2 * angle)) * ampl;
+         var fcnt = Basics.toFloat(cnt);
+         var degree = Basics.degrees(fcnt) * 2;
+         var segment = A2(Basics.mod,
+         Basics.floor(fcnt / 200),
+         7);
+         return function () {
+            switch (segment)
+            {case 0:
+               return Basics.sin(degree * 4) * ampl;
+               case 1:
+               return (Basics.cos(degree * 6) + Basics.sin(2 * degree)) * ampl;
+               case 2:
+               return (Basics.cos(degree * 3) + Basics.sin(2 * degree)) * ampl;
+               case 3: return 200;
+               case 4:
+               return (Basics.cos(degree * 3) + Basics.sin(2 * degree)) * ampl;
+               case 5:
+               return (Basics.cos(degree) + Basics.cos(degree * 3)) * ampl;
+               case 6: return 0;}
+            _E.Case($moduleName,
+            "between lines 49 and 56");
+         }();
       }();
    });
    var Dead = {ctor: "Dead"};
@@ -172,8 +231,8 @@ Elm.Main.make = function (_elm) {
    var displayText = function (game) {
       return function () {
          var text = function () {
-            var _v2 = game.state;
-            switch (_v2.ctor)
+            var _v3 = game.state;
+            switch (_v3.ctor)
             {case "Dead": return "Failure.";
                case "Playing": return "";}
             return "Space to start then arrows";
@@ -181,14 +240,14 @@ Elm.Main.make = function (_elm) {
          return text;
       }();
    };
-   var display = F2(function (_v3,
+   var display = F2(function (_v4,
    game) {
       return function () {
-         switch (_v3.ctor)
+         switch (_v4.ctor)
          {case "_Tuple2":
             return A2(Graphics.Collage.collage,
-              _v3._0,
-              _v3._1)(_L.append(_J.toList([Graphics.Collage.filled(Color.darkRed)(A2(Graphics.Collage.rect,
+              _v4._0,
+              _v4._1)(_L.append(_J.toList([Graphics.Collage.filled(Color.darkRed)(A2(Graphics.Collage.rect,
               500,
               500))]),
               _L.append(A2(List.concatMap,
@@ -201,23 +260,23 @@ Elm.Main.make = function (_elm) {
               _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
                                                ,_0: 0
                                                ,_1: 350})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                        500,
+                        900,
                         200)))
                         ,Graphics.Collage.move({ctor: "_Tuple2"
                                                ,_0: 0
                                                ,_1: -350})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                        500,
+                        900,
                         200)))
                         ,Graphics.Collage.move({ctor: "_Tuple2"
                                                ,_0: -350
-                                               ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                                               ,_1: 100})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
                         200,
-                        500)))
+                        700)))
                         ,Graphics.Collage.move({ctor: "_Tuple2"
                                                ,_0: 350
-                                               ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                                               ,_1: 100})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
                         200,
-                        500)))
+                        700)))
                         ,Graphics.Collage.toForm(A2(txt,
                         Text.height(15),
                         displayText(game)))
@@ -225,7 +284,7 @@ Elm.Main.make = function (_elm) {
                                                ,_0: 220
                                                ,_1: 260})(Graphics.Collage.toForm(Text.asText(game.score)))]))))));}
          _E.Case($moduleName,
-         "between lines 175 and 185");
+         "between lines 193 and 203");
       }();
    });
    var Waiting = {ctor: "Waiting"};
@@ -331,10 +390,16 @@ Elm.Main.make = function (_elm) {
          var ampl = _U.eq(game.state,
          Playing) ? A2(updateAmpl,
          t.ampl,
-         80) : t.ampl;
-         var nx = A2(curve,
+         180) : t.ampl;
+         var next = A2(curve,
          game.cnt,
          ampl);
+         var nx = A3(withinN,
+         2,
+         next,
+         t.x) ? next : A2(towards,
+         next,
+         t.x);
          var nwidth = _U.cmp(t.width,
          minWidth) < 0 || _U.eq(state,
          Waiting) ? t.width : t.width - 0.1;
@@ -346,52 +411,11 @@ Elm.Main.make = function (_elm) {
          t);
       }();
    };
-   var startWidth = 200;
-   var startPieceH = 100;
-   var addPiece = function (game) {
-      return function () {
-         var nwidth = game.t.width;
-         var speed = game.t.speed;
-         var ny = game.t.y;
-         var nx = game.t.x;
-         return _U.eq(A2(Basics.mod,
-         game.cnt,
-         1),
-         0) ? {ctor: "::"
-              ,_0: {_: {}
-                   ,height: startPieceH
-                   ,vx: 0
-                   ,vy: 0 - speed
-                   ,width: nwidth
-                   ,x: nx
-                   ,y: ny}
-              ,_1: game.pieces} : game.pieces;
-      }();
-   };
-   var stepPiece = F2(function (t,
-   game) {
-      return List.filter(filterPiece)(List.map(stepObj(t))(addPiece(game)));
-   });
-   var stepWaiting = F2(function (_v7,
-   game) {
-      return function () {
-         return _v7.space ? _U.replace([["state"
-                                        ,Playing]],
-         game) : _U.replace([["pieces"
-                             ,A2(stepPiece,_v7.delta,game)]
-                            ,["cnt"
-                             ,function (n) {
-                                return n + 1;
-                             }(game.cnt)]
-                            ,["t",updateTunnel(game)]],
-         game);
-      }();
-   });
-   var stepGame = F2(function (_v9,
+   var stepGame = F2(function (_v8,
    game) {
       return function () {
          return _U.replace([["pieces"
-                            ,A2(stepPiece,_v9.delta,game)]
+                            ,A2(stepPiece,_v8.delta,game)]
                            ,["cnt"
                             ,function (n) {
                                return n + 1;
@@ -399,8 +423,8 @@ Elm.Main.make = function (_elm) {
                            ,["t",updateTunnel(game)]
                            ,["ship"
                             ,A3(stepShip,
-                            _v9.delta,
-                            _v9.dir,
+                            _v8.delta,
+                            _v8.dir,
                             game.ship)]
                            ,["score"
                             ,function (n) {
@@ -410,6 +434,8 @@ Elm.Main.make = function (_elm) {
          game);
       }();
    });
+   var startWidth = 200;
+   var startPieceH = 100;
    var shipStartY = -200;
    var defaultGame = {_: {}
                      ,cnt: 0
@@ -443,14 +469,14 @@ Elm.Main.make = function (_elm) {
                          0,
                          Basics.toFloat(20))
                          ,y: 300}};
-   var stepDead = F2(function (_v11,
+   var stepDead = F2(function (_v10,
    game) {
       return function () {
-         return _v11.space ? _U.replace([["state"
+         return _v10.space ? _U.replace([["state"
                                          ,Playing]],
          defaultGame) : _U.replace([["debri"
                                     ,A4(stepDebri,
-                                    _v11.delta,
+                                    _v10.delta,
                                     game.cnt,
                                     game.ship,
                                     game.debri)]
@@ -462,11 +488,28 @@ Elm.Main.make = function (_elm) {
          game);
       }();
    });
+   var stepWaiting = F2(function (_v12,
+   game) {
+      return function () {
+         return _v12.space ? _U.replace([["state"
+                                         ,Playing]],
+         defaultGame) : _U.replace([["pieces"
+                                    ,A2(stepPiece,_v12.delta,game)]
+                                   ,["cnt"
+                                    ,function (n) {
+                                       return n + 1;
+                                    }(game.cnt)]
+                                   ,["ship"
+                                    ,A2(autoShip,game.t,game.ship)]
+                                   ,["t",updateTunnel(game)]],
+         game);
+      }();
+   });
    var stepStart = F2(function (input,
    game) {
       return function () {
-         var _v13 = game.state;
-         switch (_v13.ctor)
+         var _v14 = game.state;
+         switch (_v14.ctor)
          {case "Dead":
             return A2(stepDead,input,game);
             case "Playing":
@@ -476,7 +519,7 @@ Elm.Main.make = function (_elm) {
               input,
               game);}
          _E.Case($moduleName,
-         "between lines 149 and 152");
+         "between lines 167 and 170");
       }();
    });
    var gameState = A3(Signal.foldp,
@@ -498,6 +541,7 @@ Elm.Main.make = function (_elm) {
                       ,input: input
                       ,defaultGame: defaultGame
                       ,curve: curve
+                      ,towards: towards
                       ,updateAmpl: updateAmpl
                       ,updateTunnel: updateTunnel
                       ,stepObj: stepObj
@@ -512,6 +556,7 @@ Elm.Main.make = function (_elm) {
                       ,inside: inside
                       ,updateState: updateState
                       ,hideShip: hideShip
+                      ,autoShip: autoShip
                       ,stepDead: stepDead
                       ,stepWaiting: stepWaiting
                       ,stepGame: stepGame
