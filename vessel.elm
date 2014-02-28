@@ -50,9 +50,9 @@ curve cnt ampl =
       0 -> (sin (degree * 4)) * ampl
       1 -> (cos (degree * 6) + sin (2*degree)) * ampl
       2 -> (cos (degree * 3) + sin (2*degree)) * ampl
-      3 -> 250
+      3 -> 200
       4 -> (cos (degree * 3) + sin (2*degree)) * ampl
-      5 -> -250
+      5 -> (cos (degree) + cos (degree*3)) * ampl
       6 -> 0
 
 towards target x =
@@ -94,8 +94,6 @@ stepPiece t game =
    |> map (stepObj t)
    |> filter (filterPiece)
 
---shrink t obj = { obj | size <- obj.size - 1 }
-
 stepDebri t cnt ship debri = map (stepObj t) (addDebri ship cnt debri)
 
 addD sx sy n =
@@ -115,9 +113,10 @@ addPiece game =
       ny = game.t.y
       speed = game.t.speed
       nwidth = game.t.width
+      h = (800 / (toFloat (length game.pieces))) + 50
   in
       if game.cnt `mod` 1 == 0
-      then { x=nx, y=ny, vx=0, vy=-speed, width=nwidth, height=startPieceH } :: game.pieces
+      then { x=nx, y=ny, vx=0, vy=-speed, width=nwidth, height=h } :: game.pieces
       else game.pieces
 
 withinN offset px sx = (sx > px - offset) && (sx < px + offset)
