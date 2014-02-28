@@ -12,7 +12,7 @@ speedDelta = 0.5
 
 -- Inputs
 type Input = { dir:Int, delta:Float, space:Bool}
-delta = inSeconds <~ fps 35
+delta = inSeconds <~ fps 50
 input = sampleOn delta (Input <~ lift .x Keyboard.arrows
                                ~ delta
                                ~ Keyboard.space)
@@ -185,7 +185,7 @@ txt f = text . f . monospace . Text.color white . toText
 displayText game =
     let text = case game.state of
         Playing -> ""
-        Dead    -> "Failure."
+        Dead    -> (if game.state == Dead then "" ++ game.score else "")
         _       -> "Space to start then arrows"
     in text
 
@@ -199,8 +199,7 @@ display (w,h) game =
     , rect 900 200 |> filled white |> move (0, -350)
     , rect 200 700 |> filled white |> move (-350, 100)
     , rect 200 700 |> filled white |> move (350, 100)
-    , toForm (txt (Text.height 15) (displayText game))
-    , toForm (asText game.score) |> move (220, 260) ]
+    , toForm (txt (Text.height 15) (displayText game)) ]
 
 main = lift2 display Window.dimensions gameState
 
