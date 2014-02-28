@@ -243,6 +243,17 @@ Elm.Main.make = function (_elm) {
          return text;
       }();
    };
+   var displayVessel = F3(function (game,
+   x,
+   y) {
+      return _U.eq(game.state,
+      Playing) ? _J.toList([]) : _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
+                                                                  ,_0: 0
+                                                                  ,_1: 100})(Graphics.Collage.toForm(A3(Graphics.Element.image,
+      396,
+      68,
+      "vessel.png")))]);
+   });
    var display = F2(function (_v4,
    game) {
       return function () {
@@ -257,6 +268,10 @@ Elm.Main.make = function (_elm) {
               drawPiece,
               game.pieces),
               _L.append(drawShip(game.ship),
+              _L.append(A3(displayVessel,
+              game,
+              0,
+              -120),
               _L.append(A2(List.concatMap,
               drawDebri,
               game.debri),
@@ -282,9 +297,9 @@ Elm.Main.make = function (_elm) {
                         700)))
                         ,Graphics.Collage.toForm(A2(txt,
                         Text.height(15),
-                        displayText(game)))]))))));}
+                        displayText(game)))])))))));}
          _E.Case($moduleName,
-         "between lines 193 and 202");
+         "between lines 196 and 206");
       }();
    });
    var Waiting = {ctor: "Waiting"};
@@ -567,6 +582,7 @@ Elm.Main.make = function (_elm) {
                       ,drawShip: drawShip
                       ,txt: txt
                       ,displayText: displayText
+                      ,displayVessel: displayVessel
                       ,display: display
                       ,main: main
                       ,Waiting: Waiting

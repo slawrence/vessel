@@ -189,11 +189,15 @@ displayText game =
         _       -> "Space to start then arrows"
     in text
 
+displayVessel game x y =
+    if game.state == Playing then [] else [ toForm (image 396 68 "vessel.png") |> move (0, 100) ]
+
 display (w,h) game =
   collage w h <|
     [ rect 500 500 |> filled darkRed ] ++
     concatMap drawPiece game.pieces ++
     drawShip game.ship ++
+    displayVessel game 0 -120 ++
     concatMap drawDebri game.debri ++
     [ rect 900 200 |> filled white |> move (0, 350)
     , rect 900 200 |> filled white |> move (0, -350)
