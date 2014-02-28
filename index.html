@@ -233,7 +233,10 @@ Elm.Main.make = function (_elm) {
          var text = function () {
             var _v3 = game.state;
             switch (_v3.ctor)
-            {case "Dead": return "Failure.";
+            {case "Dead":
+               return _U.eq(game.state,
+                 Dead) ? _L.append("",
+                 game.score) : "";
                case "Playing": return "";}
             return "Space to start then arrows";
          }();
@@ -279,12 +282,9 @@ Elm.Main.make = function (_elm) {
                         700)))
                         ,Graphics.Collage.toForm(A2(txt,
                         Text.height(15),
-                        displayText(game)))
-                        ,Graphics.Collage.move({ctor: "_Tuple2"
-                                               ,_0: 220
-                                               ,_1: 260})(Graphics.Collage.toForm(Text.asText(game.score)))]))))));}
+                        displayText(game)))]))))));}
          _E.Case($moduleName,
-         "between lines 193 and 203");
+         "between lines 193 and 202");
       }();
    });
    var Waiting = {ctor: "Waiting"};
@@ -356,7 +356,7 @@ Elm.Main.make = function (_elm) {
    });
    var delta = A2(Signal._op["<~"],
    Time.inSeconds,
-   Time.fps(35));
+   Time.fps(50));
    var Input = F3(function (a,
    b,
    c) {
