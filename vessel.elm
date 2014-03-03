@@ -197,17 +197,13 @@ displayVessel game x y =
     if game.state == Playing then [] else [ toForm (image 396 68 "vessel.png") |> move (0, 100) ]
 
 display (w,h) game =
-  collage w h <|
+  container w h middle . collage 500 500 <|
     [ rect 500 500 |> filled darkRed ] ++
     concatMap drawPiece game.pieces ++
     drawShip game.ship ++
     displayVessel game 0 -120 ++
     concatMap drawDebri game.debri ++
-    [ rect 900 200 |> filled white |> move (0, 350)
-    , rect 900 200 |> filled white |> move (0, -350)
-    , rect 200 700 |> filled white |> move (-350, 100)
-    , rect 200 700 |> filled white |> move (350, 100)
-    , toForm (txt (Text.height 15) (displayText game)) ]
+    [ toForm (txt (Text.height 15) (displayText game)) ]
 
 main = lift2 display Window.dimensions gameState
 
