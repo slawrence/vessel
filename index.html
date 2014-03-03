@@ -43,7 +43,9 @@ Elm.Main.make = function (_elm) {
    var drawDebri = function (d) {
       return _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
                                               ,_0: d.x
-                                              ,_1: d.y})(Graphics.Collage.filled(Color.white)(Graphics.Collage.square(d.size)))]);
+                                              ,_1: d.y})(Graphics.Collage.rotate(Basics.degrees(d.deg))(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.ngon,
+      3,
+      5))))]);
    };
    var drawPiece = function (piece) {
       return _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
@@ -102,7 +104,7 @@ Elm.Main.make = function (_elm) {
          var vy = Basics.cos(Basics.degrees(Basics.toFloat(n))) * 150;
          var vx = Basics.sin(Basics.degrees(Basics.toFloat(n))) * 150;
          return {_: {}
-                ,size: 10
+                ,deg: 10
                 ,vx: vx
                 ,vy: vy
                 ,x: sx
@@ -113,6 +115,9 @@ Elm.Main.make = function (_elm) {
    cnt,
    debri) {
       return function () {
+         var d = A2(Basics.mod,
+         cnt,
+         360);
          var l = List.length(debri);
          return _U.eq(l,
          0) ? _L.append(A2(List.map,
@@ -121,13 +126,21 @@ Elm.Main.make = function (_elm) {
          F2(function (n,a) {
             return _U.eq(A2(Basics.mod,
             n,
-            8),
+            12),
             0) ? _L.append(_J.toList([n]),
             a) : a;
          }),
          _J.toList([]),
          _L.range(0,360))),
-         debri) : debri;
+         debri) : A2(List.map,
+         function (d) {
+            return _U.replace([["deg"
+                               ,A2(Basics.mod,
+                               d.deg + 20,
+                               360)]],
+            d);
+         },
+         debri);
       }();
    });
    var filterPiece = function (piece) {
@@ -259,9 +272,12 @@ Elm.Main.make = function (_elm) {
       return function () {
          switch (_v4.ctor)
          {case "_Tuple2":
-            return A2(Graphics.Collage.collage,
+            return A3(Graphics.Element.container,
               _v4._0,
-              _v4._1)(_L.append(_J.toList([Graphics.Collage.filled(Color.darkRed)(A2(Graphics.Collage.rect,
+              _v4._1,
+              Graphics.Element.middle)(A2(Graphics.Collage.collage,
+              500,
+              500)(_L.append(_J.toList([Graphics.Collage.filled(Color.darkRed)(A2(Graphics.Collage.rect,
               500,
               500))]),
               _L.append(A2(List.concatMap,
@@ -275,31 +291,11 @@ Elm.Main.make = function (_elm) {
               _L.append(A2(List.concatMap,
               drawDebri,
               game.debri),
-              _J.toList([Graphics.Collage.move({ctor: "_Tuple2"
-                                               ,_0: 0
-                                               ,_1: 350})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                        900,
-                        200)))
-                        ,Graphics.Collage.move({ctor: "_Tuple2"
-                                               ,_0: 0
-                                               ,_1: -350})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                        900,
-                        200)))
-                        ,Graphics.Collage.move({ctor: "_Tuple2"
-                                               ,_0: -350
-                                               ,_1: 100})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                        200,
-                        700)))
-                        ,Graphics.Collage.move({ctor: "_Tuple2"
-                                               ,_0: 350
-                                               ,_1: 100})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                        200,
-                        700)))
-                        ,Graphics.Collage.toForm(A2(txt,
-                        Text.height(15),
-                        displayText(game)))])))))));}
+              _J.toList([Graphics.Collage.toForm(A2(txt,
+              Text.height(15),
+              displayText(game)))]))))))));}
          _E.Case($moduleName,
-         "between lines 196 and 206");
+         "between lines 200 and 206");
       }();
    });
    var Waiting = {ctor: "Waiting"};
@@ -325,7 +321,7 @@ Elm.Main.make = function (_elm) {
    d,
    e) {
       return {_: {}
-             ,size: e
+             ,deg: e
              ,vx: c
              ,vy: d
              ,x: a
@@ -489,6 +485,9 @@ Elm.Main.make = function (_elm) {
       return function () {
          return _v10.space ? _U.replace([["state"
                                          ,Playing]],
+         defaultGame) : _U.cmp(game.cnt,
+         game.score + 200) > 0 ? _U.replace([["state"
+                                             ,Waiting]],
          defaultGame) : _U.replace([["debri"
                                     ,A4(stepDebri,
                                     _v10.delta,
@@ -534,7 +533,7 @@ Elm.Main.make = function (_elm) {
               input,
               game);}
          _E.Case($moduleName,
-         "between lines 167 and 170");
+         "between lines 171 and 174");
       }();
    });
    var gameState = A3(Signal.foldp,

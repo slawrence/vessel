@@ -20,7 +20,7 @@ input = sampleOn delta (Input <~ lift .x Keyboard.arrows
 type Ship = { x:Float, y:Float, vx:Float, vy:Float }
 type Tunnel = { width:Float, speed:Float, x:Float, y:Float, h:Float, ampl:Float }
 type Piece = { x: Float, y: Float, vx:Float, vy:Float, width:Float, height:Float }
-type Debri = { x: Float, y: Float, vx:Float, vy:Float, size:Float }
+type Debri = { x: Float, y: Float, vx:Float, vy:Float, deg:Int }
 type Game = { cnt:Int,
               ship:Ship,
               t:Tunnel,
@@ -99,13 +99,14 @@ stepDebri t cnt ship debri = map (stepObj t) (addDebri ship cnt debri)
 addD sx sy n =
     let vx = sin (degrees (toFloat n)) * 150
         vy = cos (degrees (toFloat n)) * 150
-    in {x=sx, y=sy, vx=vx, vy=vy, size=10}
+    in {x=sx, y=sy, vx=vx, vy=vy, deg=10}
 
 addDebri ship cnt debri =
   let l = length debri
+      d = cnt `mod` 360
   in if (l == 0)
-     then (map (addD ship.x ship.y) (foldl (\n a -> if n `mod` 8 == 0 then [n] ++ a else a ) [] [0..360])) ++ debri
-     else debri
+     then (map (addD ship.x ship.y) (foldl (\n a -> if n `mod` 12 == 0 then [n] ++ a else a ) [] [0..360])) ++ debri
+     else map (\d -> { d | deg <- (d.deg + 20) `mod` 360 } ) debri
 
 addPiece : Game -> [Piece]
 addPiece game =
@@ -143,7 +144,10 @@ autoShip t s = { s | x <- towards t.x s.x }
 stepDead : Input -> Game -> Game
 stepDead {dir,delta,space} game = if space
                           then { defaultGame | state <- Playing }
-                          else { game | debri <- stepDebri delta game.cnt game.ship game.debri
+                          else
+                            if (game.cnt > game.score + 200)
+                            then { defaultGame | state <- Waiting }
+                            else { game | debri <- stepDebri delta game.cnt game.ship game.debri
                                       , ship <- hideShip game.ship
                                       , cnt <- (\n -> n + 1) game.cnt }
 
@@ -175,7 +179,7 @@ gameState = foldp stepStart defaultGame input
 drawPiece piece = [rect piece.width piece.height |> filled lightRed
                                                  |> move (piece.x, piece.y)]
 
-drawDebri d = [square d.size |> filled white |> move (d.x, d.y)]
+drawDebri d = [ngon 3 5 |> filled white |> rotate (degrees d.deg) |> move (d.x, d.y)]
 
 drawShip ship = [ ngon 3 10 |> filled white
                             |> rotate (degrees 90)
@@ -193,17 +197,13 @@ displayVessel game x y =
     if game.state == Playing then [] else [ toForm (image 396 68 "vessel.png") |> move (0, 100) ]
 
 display (w,h) game =
-  collage w h <|
+  container w h middle . collage 500 500 <|
     [ rect 500 500 |> filled darkRed ] ++
     concatMap drawPiece game.pieces ++
     drawShip game.ship ++
     displayVessel game 0 -120 ++
     concatMap drawDebri game.debri ++
-    [ rect 900 200 |> filled white |> move (0, 350)
-    , rect 900 200 |> filled white |> move (0, -350)
-    , rect 200 700 |> filled white |> move (-350, 100)
-    , rect 200 700 |> filled white |> move (350, 100)
-    , toForm (txt (Text.height 15) (displayText game)) ]
+    [ toForm (txt (Text.height 15) (displayText game)) ]
 
 main = lift2 display Window.dimensions gameState
 
