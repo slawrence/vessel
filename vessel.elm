@@ -1,5 +1,6 @@
 import Keyboard
 import Window
+import Text
 
 -- Important game properties
 shipStartY = -200
@@ -45,7 +46,7 @@ curve : Int -> Float -> Float
 curve cnt ampl =
   let fcnt = toFloat cnt
       degree = (degrees fcnt) * 2
-      segment = (floor (fcnt / 200)) `mod` 7 -- one more than # of segs
+      segment = (floor (fcnt / 200)) % 7 -- one more than # of segs
   in case segment of
       0 -> (sin (degree * 4)) * ampl
       1 -> (cos (degree * 6) + sin (2*degree)) * ampl
@@ -103,10 +104,10 @@ addD sx sy n =
 
 addDebri ship cnt debri =
   let l = length debri
-      d = cnt `mod` 360
+      d = cnt % 360
   in if (l == 0)
-     then (map (addD ship.x ship.y) (foldl (\n a -> if n `mod` 12 == 0 then [n] ++ a else a ) [] [0..360])) ++ debri
-     else map (\d -> { d | deg <- (d.deg + 20) `mod` 360 } ) debri
+     then (map (addD ship.x ship.y) (foldl (\n a -> if n % 12 == 0 then [n] ++ a else a ) [] [0..360])) ++ debri
+     else map (\d -> { d | deg <- (d.deg + 20) % 360 } ) debri
 
 addPiece : Game -> [Piece]
 addPiece game =
@@ -116,7 +117,7 @@ addPiece game =
       nwidth = game.t.width
       h = (800 / (toFloat (length game.pieces))) + 50
   in
-      if game.cnt `mod` 1 == 0
+      if game.cnt % 1 == 0
       then { x=nx, y=ny, vx=0, vy=-speed, width=nwidth, height=h } :: game.pieces
       else game.pieces
 
@@ -185,25 +186,23 @@ drawShip ship = [ ngon 3 10 |> filled white
                             |> rotate (degrees 90)
                             |> move (ship.x, ship.y) ]
 
-txt f = text . f . monospace . Text.color white . toText
-displayText game =
-    let text = case game.state of
-        Playing -> ""
-        Dead    -> (if game.state == Dead then "" ++ game.score else "")
-        _       -> "Space to start then arrows"
-    in text
+txt f = centered (monospace (Text.height 15 (Text.color white (toText (f)))))
+displayText game = case game.state of
+                        Playing -> game.score
+                        Dead    -> (if game.state == Dead then "" ++ game.score else "")
+                        _       -> "Space to start then arrows"
 
 displayVessel game x y =
     if game.state == Playing then [] else [ toForm (image 396 68 "vessel.png") |> move (0, 100) ]
 
 display (w,h) game =
-  container w h middle . collage 500 500 <|
-    [ rect 500 500 |> filled darkRed ] ++
-    concatMap drawPiece game.pieces ++
-    drawShip game.ship ++
-    displayVessel game 0 -120 ++
-    concatMap drawDebri game.debri ++
-    [ toForm (txt (Text.height 15) (displayText game)) ]
+  container w h middle
+    (collage 500 500
+      ([rect 500 500 |> filled darkRed ] ++
+        concatMap drawPiece game.pieces ++
+        drawShip game.ship ++
+        displayVessel game 0 -120 ++
+        concatMap drawDebri game.debri ++
+        [toForm (txt (displayText game))]))
 
 main = lift2 display Window.dimensions gameState
-
