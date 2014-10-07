@@ -188,7 +188,7 @@ drawShip ship = [ ngon 3 10 |> filled white
 
 txt f = centered (monospace (Text.height 15 (Text.color white (toText (f)))))
 displayText game = case game.state of
-                        Playing -> game.score
+                        Playing -> ""
                         Dead    -> (if game.state == Dead then "" ++ game.score else "")
                         _       -> "Space to start then arrows"
 
