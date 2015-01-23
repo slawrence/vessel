@@ -1,6 +1,14 @@
 import Keyboard
 import Window
 import Text
+import Text (centered, monospace, fromString)
+import Signal
+import Signal ((<~), (~), sampleOn, foldp)
+import Time (Time, fps, inSeconds)
+import List (length, foldl, filter, map, concatMap, any, (::))
+import Graphics.Element (image, container, middle, Element)
+import Graphics.Collage (collage, rect, ngon, filled, move, rotate, toForm)
+import Color (lightRed, white, darkRed)
 
 -- Important game properties
 shipStartY = -200
@@ -12,24 +20,24 @@ speedDelta = 0.5
 
 
 -- Inputs
-type Input = { dir:Int, delta:Float, space:Bool}
+type alias Input = { dir:Int, delta:Float, space:Bool}
 delta = inSeconds <~ fps 50
-input = sampleOn delta (Input <~ lift .x Keyboard.arrows
+input = sampleOn delta (Input <~ Signal.map .x Keyboard.arrows
                                ~ delta
                                ~ Keyboard.space)
 -- Models
-type Ship = { x:Float, y:Float, vx:Float, vy:Float }
-type Tunnel = { width:Float, speed:Float, x:Float, y:Float, h:Float, ampl:Float }
-type Piece = { x: Float, y: Float, vx:Float, vy:Float, width:Float, height:Float }
-type Debri = { x: Float, y: Float, vx:Float, vy:Float, deg:Int }
-type Game = { cnt:Int,
+type alias Ship = { x:Float, y:Float, vx:Float, vy:Float }
+type alias Tunnel = { width:Float, speed:Float, x:Float, y:Float, h:Float, ampl:Float }
+type alias Piece = { x: Float, y: Float, vx:Float, vy:Float, width:Float, height:Float }
+type alias Debri = { x: Float, y: Float, vx:Float, vy:Float, deg:Int }
+type alias Game = { cnt:Int,
               ship:Ship,
               t:Tunnel,
-              debri:[Debri],
-              pieces:[Piece],
+              debri:List Debri,
+              pieces:List Piece,
               score:Int,
               state:State}
-data State = Waiting | Playing | Dead
+type State = Waiting | Playing | Dead
 
 -- initial state
 defaultGame =
@@ -89,7 +97,7 @@ stepShip t dir ship =
 
 filterPiece piece = piece.y > -400
 
-stepPiece : Time -> Game -> [Piece]
+stepPiece : Time -> Game -> List Piece
 stepPiece t game =
   addPiece game
    |> map (stepObj t)
@@ -109,7 +117,7 @@ addDebri ship cnt debri =
      then (map (addD ship.x ship.y) (foldl (\n a -> if n % 12 == 0 then [n] ++ a else a ) [] [0..360])) ++ debri
      else map (\d -> { d | deg <- (d.deg + 20) % 360 } ) debri
 
-addPiece : Game -> [Piece]
+addPiece : Game -> List Piece
 addPiece game =
   let nx = game.t.x
       ny = game.t.y
@@ -180,16 +188,16 @@ gameState = foldp stepStart defaultGame input
 drawPiece piece = [rect piece.width piece.height |> filled lightRed
                                                  |> move (piece.x, piece.y)]
 
-drawDebri d = [ngon 3 5 |> filled white |> rotate (degrees d.deg) |> move (d.x, d.y)]
+drawDebri d = [ngon 3 5 |> filled white |> rotate (degrees (toFloat d.deg)) |> move (d.x, d.y)]
 
 drawShip ship = [ ngon 3 10 |> filled white
                             |> rotate (degrees 90)
                             |> move (ship.x, ship.y) ]
 
-txt f = centered (monospace (Text.height 15 (Text.color white (toText (f)))))
+txt f = centered (monospace (Text.height 15 (Text.color white (fromString (f)))))
 displayText game = case game.state of
                         Playing -> ""
-                        Dead    -> (if game.state == Dead then "" ++ game.score else "")
+                        Dead    -> (if game.state == Dead then "" ++ (toString game.score) else "")
                         _       -> "Space to start then arrows"
 
 displayVessel game x y =
@@ -205,4 +213,4 @@ display (w,h) game =
         concatMap drawDebri game.debri ++
         [toForm (txt (displayText game))]))
 
-main = lift2 display Window.dimensions gameState
+main = display <~ Window.dimensions ~ gameState
