@@ -1,14 +1,15 @@
 import Keyboard
 import Window
 import Text
-import Text (centered, monospace, fromString)
+import Text exposing (monospace, fromString)
+import Graphics.Element exposing (centered)
 import Signal
-import Signal ((<~), (~), sampleOn, foldp)
-import Time (Time, fps, inSeconds)
-import List (length, foldl, filter, map, concatMap, any, (::))
-import Graphics.Element (image, container, middle, Element)
-import Graphics.Collage (collage, rect, ngon, filled, move, rotate, toForm)
-import Color (lightRed, white, darkRed)
+import Signal exposing ((<~), (~), sampleOn, foldp)
+import Time exposing (Time, fps, inSeconds)
+import List exposing (length, foldl, filter, map, concatMap, any, (::))
+import Graphics.Element exposing (image, container, middle, Element)
+import Graphics.Collage exposing (collage, rect, ngon, filled, move, rotate, toForm)
+import Color exposing (lightRed, white, darkRed)
 
 -- Important game properties
 shipStartY = -200
